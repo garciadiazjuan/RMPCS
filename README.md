@@ -5,6 +5,23 @@ This code represents the artifact created as part of a thesis project by the aut
 Juan García Díaz
 Carlotta Hillger
 
+## Contents
+This repository contains the entire code artifact, including the tileset.png necessary to create maps.
+Information pertaining the use of the system and its architecture can be found in the thesis document corresponding to this project.
+
+This system is divided into two main folders
+
+### APP
+Python Dash application used to create a domain model, compute a solution and trigger a simulation of the solution.
+
+### LuaSimulator
+Löve2D Lua simulator engine that displays the simulation.
+
+## Warning
+In order to use this system, all necessary dependencies, programs, engines and frameworks require installation, to consult these dependencies and ensure the code platform is safe, please contact the developers of the system.
+gusgarjub@student.gu.se
+gushillgca@student.gu.se
+
 
 ## MIT License
 
