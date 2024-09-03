@@ -22,6 +22,13 @@ In order to use this system, all necessary dependencies, programs, engines and f
 gusgarjub@student.gu.se
 gushillgca@student.gu.se
 
+## Installation
+The neccessary dependencies can be installed using the following command.
+pip install -r requirements.txt
+
+After navigating to the APP directory (cd APP), the code can be executed using the following command.
+python app.py
+
 
 ## MIT License
 

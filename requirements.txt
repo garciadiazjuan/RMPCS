@@ -1,0 +1,11 @@
+numpy
+dash
+dash-leaflet
+pytmx
+pygame
+pandas
+plotly
+scipy
+Pillow
+dash-bootstrap-components
+importlib-metadata
