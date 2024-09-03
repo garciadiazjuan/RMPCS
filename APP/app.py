@@ -95,7 +95,7 @@ tasks.append(example_task_5)
 
 constraints = list()
 idconstraints = list()
-example_constraint_1 = LC.LinearConstraint('time should not go surpass 90','time', 0, None, 90, 100, '2')
+example_constraint_1 = LC.LinearConstraint('time should not surpass 90','time', 0, None, 90, 100, '2')
 example_constraint_2 = IC.InterdependencyConstraint('task 4 needs to be done before task 5',example_task_5, [example_task_4], 1000, '0')
 
 constraints.append(example_constraint_1)
@@ -910,6 +910,12 @@ def plan(n_clicks):
                 )
     simulation_final_plan = best_plan
     simulation_graph = graph
+    idconstraint_violation = list()
+    constraint_violation = list()
+    print("constraints cominggggg")
+    for i in best_plan.constraint_penalties:
+        print(i)
+        print(best_plan.constraint_penalties[i])
     create_simulation_txt(simulation_final_plan, simulation_graph, tasks)
 
     return html.Div(
@@ -920,7 +926,14 @@ def plan(n_clicks):
                 id='plan-output',
                 message='Plan created',
             ),
-            dbc.Progress(id='plan_value', value=(best_plan.value-best_plan.cost)/10),
+            html.H6("Plan Value", className="container__title"),
+            dbc.Progress(
+                [
+                    dbc.Progress(id='plan_value', value=(best_plan.value-best_plan.cost)/10, label=f'{(best_plan.value-best_plan.cost)/10}%', color="#6AB648", style={"height": "30px", "font-size":"20px"}, bar=True),
+                    dbc.Progress(id='plan_value_negative', value=best_plan.cost/10, color="danger", style={"height": "30px"}, bar=True),
+                ],
+                style={"height": "30px"}
+            ),
             html.H6("Path", className="container__title"),
             dbc.ListGroup(
                 children = [
@@ -938,7 +951,7 @@ def plan(n_clicks):
             html.H6("Constraints", className="container__title"),
             dbc.ListGroup(
                 children = [
-                    dbc.ListGroupItem(f"{i} has a penalty of {round(best_plan.constraint_penalties[i][0], 2)}")
+                    dbc.ListGroupItem(f"The constraint '{i}' has lead to a penalty of {round(best_plan.constraint_penalties[i][0], 2)}")
                     for i in best_plan.constraint_penalties
                 ]
             ),
@@ -946,7 +959,7 @@ def plan(n_clicks):
                 id='simulation-output',
                 message='Could not start simulation',
             ),
-            html.A(html.Button("Start Simulation", className="evaluate-button", id="show-simulation-button")),
+            html.A(html.Button("Start Execution", className="evaluate-button", id="show-simulation-button")),
         ],
         className="create__and__evaluate__container second"
     )
