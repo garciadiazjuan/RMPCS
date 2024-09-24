@@ -30,6 +30,7 @@ from zipfile import ZipFile
 from ast import literal_eval
 import PIL.Image as PILImage
 import xml.etree.ElementTree as ET
+import time as t
 
 import linearConstraint as LC
 import interdependencyConstraint as IC
@@ -81,11 +82,11 @@ example_robot = Robot([battery, time, hammer], 1, {
 
 
 tasks = list()
-example_task_1 = task.Task('pick up bolts',{'time': -10, 'hammer': 1, 'battery': 5}, {'bolt': 6}, 200, True, [14,0])
-example_task_2 = task.Task('fix computer',{'time': -20, 'hammer': 1, 'battery': 5, 'bolt':3}, {}, 200, True, [4,19])
-example_task_3 = task.Task('fix conveyor belt',{'time': -20, 'hammer': 1, 'battery': 10, 'bolt':2}, {}, 200, True, [8,3])
-example_task_4 = task.Task('complete door repair',{'time': -30, 'hammer': 1, 'battery': 30, 'bolt':1}, {}, 200, True, [2,9])
-example_task_5 = task.Task('open package',{'time': -30}, {}, 200, True, [16,17])
+example_task_1 = task.Task('pick up bolts',{'time': -4, 'hammer': 1, 'battery': 5}, {'bolt': 6}, 200, True, [19,3])
+example_task_2 = task.Task('fix computer',{'time': -2, 'hammer': 1, 'battery': 5, 'bolt':3}, {}, 200, True, [19,7])
+example_task_3 = task.Task('fix conveyor belt',{'time': -7, 'hammer': 1, 'battery': 10, 'bolt':2}, {}, 200, True, [16,7])
+example_task_4 = task.Task('complete door repair',{'time': -3, 'hammer': 1, 'battery': 30, 'bolt':1}, {}, 200, True, [16,7])
+example_task_5 = task.Task('open package',{'time': -8}, {}, 200, True, [16,9])
 tasks.append(example_task_1)
 tasks.append(example_task_2)
 tasks.append(example_task_3)
@@ -102,6 +103,7 @@ constraints.append(example_constraint_1)
 idconstraints.append(example_constraint_2)
 
 map_data =[]
+graph = list()
 
 encoded_image = None
 
@@ -536,7 +538,7 @@ idconstraint_box = html.Div(
     className="create__and__evaluate__container first",
 )
 
-# HTML block to show or hide the grid
+# HTML block to show the generated plan
 
 show_plan_box = html.Div(
     [
@@ -550,10 +552,10 @@ show_plan_box = html.Div(
         html.H6("Path", className="container__title"),
         html.H6("Distance and Time", className="container__title"),
         html.H6("Constraints", className="container__title"),
-        html.A(html.Button("Start Simulation", className="evaluate-button", id="show-simulation-button")),
+        html.A(html.Button("Start Execution", className="evaluate-button", id="start-execution-button")),
         dcc.ConfirmDialog(
-            id='simulation-output',
-            message='Could not start simulation',
+            id='execution-output',
+            message='Replanning needed',
         ),
     ],
     className="create__and__evaluate__container second"
@@ -627,6 +629,11 @@ app.layout = html.Div(
                 ),
             ],
             className="app__content",
+        ),
+        dcc.Interval(
+            id='interval-component',
+            interval=2000,  # Interval in milliseconds (2000 ms = 2 seconds)
+            n_intervals=0  # Start counting intervals from 0
         ),
     ],
     className="app__container",
@@ -866,7 +873,7 @@ def add_idconstraint(notUsed, name, task, dependencies, penalty, type):
             Input('plan-button', 'n_clicks'),
             prevent_initial_call = True)
 def plan(n_clicks):
-    starting_position = [19,0]
+    starting_position = [19,1]
     ending_position = [19,0]
     all_constraints = {
         "discrete": [],
@@ -883,6 +890,7 @@ def plan(n_clicks):
         tmx_data)
     print('map works')
     example_map.create_graph()
+    global graph
     graph = example_map.graph
     for el in graph:
         print(el)
@@ -908,6 +916,7 @@ def plan(n_clicks):
                 + " has a penalty of " 
                 + str(plan.constraint_penalties[constraint_violated][0])
                 )
+    global simulation_final_plan 
     simulation_final_plan = best_plan
     simulation_graph = graph
     idconstraint_violation = list()
@@ -916,7 +925,7 @@ def plan(n_clicks):
     for i in best_plan.constraint_penalties:
         print(i)
         print(best_plan.constraint_penalties[i])
-    create_simulation_txt(simulation_final_plan, simulation_graph, tasks)
+    #create_simulation_txt(simulation_final_plan, simulation_graph, tasks)
 
     return html.Div(
         [
@@ -955,24 +964,162 @@ def plan(n_clicks):
                     for i in best_plan.constraint_penalties
                 ]
             ),
+            html.A(html.Button("Start Execution", className="evaluate-button", id="start-execution-button")),
             dcc.ConfirmDialog(
-                id='simulation-output',
+                id='execution-output',
                 message='Could not start simulation',
             ),
-            html.A(html.Button("Start Execution", className="evaluate-button", id="show-simulation-button")),
         ],
         className="create__and__evaluate__container second"
     )
 
 
-@app.callback(Output('simulation-output', 'displayed'),
-    Input('show-simulation-button', 'n_clicks'),
-    prevent_initial_call = True)
-def show_simulation(n_clicks):   
-    run_love2d_project()
+@app.callback(Output('execution-output', 'displayed'),
+            Input('start-execution-button', 'n_clicks'),
+            prevent_initial_call = True)
+def start_execution(n_clicks):
+    print("task schedule is " + str(simulation_final_plan.task_schedule))
+    print("best path is " + str(simulation_final_plan.path))
+    
+    moving = True
+    performing_task= False
+    task_schedule_string = "start at " + str(simulation_final_plan.path[0])
+    global tasks
+    global resources
+    global example_robot
+    executed_plan = Plan([simulation_final_plan.path[0]], example_robot, 0, 0, tasks, 0, 0, [task_schedule_string])
+    current_position = executed_plan.path[0]
+    left_to_move = graph[tuple(simulation_final_plan.path[0]), tuple(simulation_final_plan.path[1])][0]
+    print('left to move:')
+    print(left_to_move)
+    replanning_needed = False
+    next_task = 1
+    task_time = 0
+    # start "timer"
+    while(replanning_needed==False):
+        # wait one second
+        t.sleep(1)
+        # if moving update position, time and resources
+        if moving == True:
+            moving, performing_task, task_time, current_position = move(left_to_move, executed_plan, current_position, moving, performing_task, task_time)
+        if performing_task == True:
+            performing_task, moving, next_task, task_time, left_to_move, end, replanning_needed = perform_task(next_task, executed_plan, task_time, moving, performing_task, left_to_move, replanning_needed)
+            if end==True:
+                return True
+        executed_plan.time_spent += 1
+        #executed_plan.robot.resources['time'] += 1
+    tasks = executed_plan.pending_tasks
+    resources = executed_plan.robot.resources
+    example_robot = executed_plan.robot
     return False
 
+def move(left_to_move, executed_plan, current_position, moving, performing_task, task_time):
+    # check if moving finished
+    if not left_to_move:
+        print('finished moving')
+        moving = False
+        performing_task = True
+        task_time = 0
+        executed_plan.path.append(current_position)
+        # TODO: randomly decide if replanning is needed
+            #replanning_needed = True
+    else:
+        # update current position and remove the previous one from left to move
+        current_position = left_to_move[0]
+        left_to_move.remove(current_position)
+        print('moving')
+    return moving, performing_task, task_time, current_position
 
+def perform_task(next_task, executed_plan, task_time, moving, performing_task, left_to_move, replanning_needed):
+    # find current task
+    task_string = simulation_final_plan.task_schedule[next_task]
+    print(task_string)
+    task_name, task_location = task_string.split(" at ")
+    current_task = ""
+    end = False
+    for task in tasks:
+        if task.name == task_name:
+            if str(task.location) == task_location:
+                current_task = task
+    # check if task is completed
+    if task_time == -current_task.resource_consumes['time']:
+        print('finished task')
+
+        for resource in current_task.resource_consumes:
+            for robot_resource in executed_plan.robot.resources:
+                if robot_resource.name == resource:
+                    if (not resource=='time') and (not current_task.resource_consumes[resource]==-1):
+                        fluctuation = random.uniform(0.4, 1.6)  # Fluctuate by ±10%
+                        adjusted_consumption = current_task.resource_consumes[resource] * fluctuation
+                        adjusted_consumption = round(adjusted_consumption)
+                        robot_resource.value_left -= adjusted_consumption
+                        print(f"{resource} consumed with fluctuation: {adjusted_consumption:.2f}")
+
+                        # Check if deviation is more than 5%
+                        if fluctuation < 0.5 or fluctuation > 1.5:
+                            print('replanning needed')
+                            replanning_needed = True
+
+        for resource in current_task.resource_gives:
+            resource_in_robot = False
+            for robot_resource in executed_plan.robot.resources:
+                if robot_resource.name == resource:
+                    resource_in_robot = True
+                    if (not resource=='time') and (not current_task.resource_gives[resource]==-1):
+                        fluctuation = random.uniform(0.4, 1.6)  # Fluctuate by ±10%
+                        adjusted_giving = current_task.resource_gives[resource] * fluctuation
+                        adjusted_giving = round(adjusted_giving)
+                        robot_resource.value_left += adjusted_giving
+                        print(f"{resource} given with fluctuation: {adjusted_giving:.2f}")
+
+                        # Check if deviation is more than 5%
+                        if fluctuation < 0.5 or fluctuation > 1.5:
+                            print('replanning needed')
+                            replanning_needed = True
+            if resource_in_robot == False:
+                executed_plan.robot.resources.append(Resource.Resource(resource, current_task.resource_gives[resource]))
+        # update tasks
+        if executed_plan.pending_tasks:
+            executed_plan.pending_tasks.remove(current_task)
+
+        # prepare for moving
+        performing_task = False
+        moving = True
+        next_task += 1
+        # print(left_to_move)
+        if not len(simulation_final_plan.path) == next_task+1:
+            left_to_move = graph[tuple(simulation_final_plan.path[next_task-1]), tuple(simulation_final_plan.path[next_task])][0]
+        else: 
+            print('all tasks executed')
+            for resource in executed_plan.robot.resources:
+                print(resource.name)
+                print(resource.value_left)
+            print(executed_plan.pending_tasks)
+            end = True
+
+
+    task_time += 1
+    return performing_task, moving, next_task, task_time, left_to_move, end, replanning_needed
+
+
+# Callback that is triggered by the interval
+@app.callback(
+    Output('output', 'children'),
+    Input('interval-component', 'n_intervals')  # Trigger every 2 seconds
+)
+def update_output(n_intervals):
+    # randomly update resources (optional)
+    random = np.random()
+
+    # check if new planning is needed
+    if(random == 1):
+        # replanning
+        print('replanning')
+    elif(random == 0):
+        # no replanning
+        print('no replanning')
+
+    return f"Interval triggered {n_intervals} times"
 ###################   MAIN   #########################################################################################
 
 
