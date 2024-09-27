@@ -26,8 +26,6 @@ class BFS:
         self._queue.push(first_plan,0)  # Start with initial position and path
         while not self._queue.is_empty():
             plan = self._queue.pop() # get best next step
-            print("/////////////////////////////")
-            print("popping " + str(plan.path))
             path = plan.path # get path of plan
             pending_tasks = plan.pending_tasks # list of pending tasks
             # If all tasks are done and (robot is in final position / no final position needed)

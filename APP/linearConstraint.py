@@ -31,8 +31,6 @@ class LinearConstraint:
                     if resource.value_left > self.lower_limit:
                         return True
                 if self.priority_value == '0': # priority 1 means hard boundary
-                    print("the following constraint conflict occured")
-                    print(resource)
                     return False
         return True
 

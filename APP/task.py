@@ -14,9 +14,6 @@ class Task:
         for resource in robot.resources:
             if resource.name == "time":
                 resource.value_left += travel_time
-        print("has neccesary resources " + str(self.check_resources(robot)))
-        print("complies with hard constraints " + str(self.check_constraints(robot, constraints, plan)))
-
         if self.available & self.check_resources(robot) & self.check_constraints(robot, constraints, plan):
             return True
         return False

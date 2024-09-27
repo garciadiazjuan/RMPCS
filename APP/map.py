@@ -66,8 +66,7 @@ class Map:
                     new_path = path + [[neighbor[0],neighbor[1]]]
                     queue.push(([neighbor[0],neighbor[1]], new_path), abs(neighbor[0]- node2[0]) + abs(neighbor[1]- node2[1]))
                     visited.add(tuple(neighbor))
-
-        return [],-1
+        raise Exception("NO PATH FOUND BETWEEN " +str(node1)+" AND "+str(node2))
     
 
     def get_neighbors(self, matrix, node):

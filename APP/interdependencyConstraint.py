@@ -10,8 +10,6 @@ class InterdependencyConstraint:
     def check_constraint(self, plan, robot):
         for task in self.required_tasks:
             if task in plan.pending_tasks and self.priority_value == '0':
-                print("the following constraint conflict occured")
-                print(self.name)
                 return False
         return True
 

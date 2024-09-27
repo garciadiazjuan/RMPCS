@@ -18,7 +18,6 @@ class Plan:
         plans = []
         for task in self.pending_tasks:
             copy_tasks = copy.copy(self.pending_tasks)
-            print("checking task at " + str(task.location))
             a, b = self.path[-1]
             c, d = task.location
             key = ((a, b), (c, d))
@@ -36,7 +35,6 @@ class Plan:
                     copy.copy(self.time_spent),
                     copy.copy(self.task_schedule))
                 new_plan.update_plan(constraints, new_plan, task, travel_time)
-                print("new plan is created with path " + str(new_plan.path))
                 # update distance
                 # Create the key tuple
                 a, b = self.path[-1]
